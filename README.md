@@ -39,6 +39,8 @@ secure-auth-api/
 ├── README.md
 └── requirements.txt
 
+```
+
 ## 🛠️ Como Executar o Projeto Localmente
 
 ### Pré-requisitos
