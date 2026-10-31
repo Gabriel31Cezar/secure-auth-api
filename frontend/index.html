@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Auth API - Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full space-y-6">
+    <div class="text-center">
+      <h1 class="text-2xl font-bold text-gray-800">Secure Auth API</h1>
+      <p class="text-gray-500 text-sm">Interface de Teste de Autenticação JWT</p>
+    </div>
+
+    <!-- Mensagens de Alerta -->
+    <div id="alert" class="hidden p-3 rounded text-sm text-center font-medium"></div>
+
+    <!-- Navegação de Abas -->
+    <div class="flex border-b">
+      <button id="tab-login" type="button" class="flex-1 py-2 font-semibold text-blue-600 border-b-2 border-blue-600">Login</button>
+      <button id="tab-register" type="button" class="flex-1 py-2 font-semibold text-gray-500 hover:text-blue-600">Cadastro</button>
+    </div>
+
+    <!-- Formulário de Login -->
+    <form id="form-login" class="space-y-4">
+      <div>
+        <label for="login-username" class="block text-sm font-medium text-gray-700">Username ou E-mail</label>
+        <input type="text" id="login-username" name="login-username" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label for="login-password" class="block text-sm font-medium text-gray-700">Senha</label>
+        <input type="password" id="login-password" name="login-password" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition">Entrar</button>
+    </form>
+
+    <!-- Formulário de Cadastro -->
+    <form id="form-register" class="space-y-4 hidden">
+      <div>
+        <label for="reg-email" class="block text-sm font-medium text-gray-700">E-mail</label>
+        <input type="email" id="reg-email" name="reg-email" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label for="reg-username" class="block text-sm font-medium text-gray-700">Username</label>
+        <input type="text" id="reg-username" name="reg-username" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <div>
+        <label for="reg-password" class="block text-sm font-medium text-gray-700">Senha</label>
+        <input type="password" id="reg-password" name="reg-password" required class="mt-1 w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+      </div>
+      <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded transition">Cadastrar</button>
+    </form>
+
+    <!-- Área Protegida do Perfil (Visível apenas após login) -->
+    <div id="profile-area" class="hidden space-y-4">
+      <div class="bg-gray-50 p-4 rounded border">
+        <h2 class="text-lg font-bold text-gray-700 border-b pb-2 mb-2">Perfil Autenticado via JWT</h2>
+        <p class="text-sm text-gray-600"><strong>ID:</strong> <span id="user-id"></span></p>
+        <p class="text-sm text-gray-600"><strong>Username:</strong> <span id="user-username"></span></p>
+        <p class="text-sm text-gray-600"><strong>E-mail:</strong> <span id="user-email"></span></p>
+        <p class="text-sm text-gray-600"><strong>Status:</strong> <span id="user-status" class="text-green-600 font-semibold"></span></p>
+      </div>
+
+      <div class="bg-gray-900 text-green-400 p-3 rounded font-mono text-xs overflow-x-auto">
+        <p class="font-bold text-gray-400 mb-1">Bearer Token JWT armazenado:</p>
+        <span id="jwt-token-display"></span>
+      </div>
+
+      <button id="btn-logout" type="button" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded transition">Sair / Logout</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    function showAlert(msg, isSuccess = false) {
+      const alert = document.getElementById('alert');
+      alert.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+      alert.classList.add(isSuccess ? 'bg-green-100' : 'bg-red-100', isSuccess ? 'text-green-700' : 'text-red-700');
+      alert.innerText = msg;
+    }
+
+    function switchTab(tab) {
+      document.getElementById('alert').classList.add('hidden');
+      if (tab === 'login') {
+        document.getElementById('form-login').classList.remove('hidden');
+        document.getElementById('form-register').classList.add('hidden');
+        document.getElementById('tab-login').className = "flex-1 py-2 font-semibold text-blue-600 border-b-2 border-blue-600";
+        document.getElementById('tab-register').className = "flex-1 py-2 font-semibold text-gray-500 hover:text-blue-600";
+      } else {
+        document.getElementById('form-register').classList.remove('hidden');
+        document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('tab-register').className = "flex-1 py-2 font-semibold text-green-600 border-b-2 border-green-600";
+        document.getElementById('tab-login').className = "flex-1 py-2 font-semibold text-gray-500 hover:text-blue-600";
+      }
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      const email = document.getElementById('reg-email').value;
+      const username = document.getElementById('reg-username').value;
+      const password = document.getElementById('reg-password').value;
+
+      try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, username, password })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert("Usuário cadastrado com sucesso! Faça login.", true);
+          switchTab('login');
+        } else {
+          showAlert(data.detail || "Erro no cadastro.");
+        }
+      } catch (err) {
+        showAlert("Erro de conexão com a API.");
+      }
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('access_token', data.access_token);
+          showAlert("Login efetuado com sucesso!", true);
+          await loadUserProfile();
+        } else {
+          showAlert(data.detail || "Credenciais inválidas.");
+        }
+      } catch (err) {
+        showAlert("Erro de conexão com a API.");
+      }
+    }
+
+    async function loadUserProfile() {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_URL}/users/me`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById('form-login').classList.add('hidden');
+          document.getElementById('form-register').classList.add('hidden');
+          const tabNavigation = document.querySelector('.flex.border-b');
+          if (tabNavigation) tabNavigation.classList.add('hidden');
+
+          document.getElementById('user-id').innerText = data.id;
+          document.getElementById('user-username').innerText = data.username;
+          document.getElementById('user-email').innerText = data.email;
+          document.getElementById('user-status').innerText = data.is_active ? "Ativo" : "Inativo";
+          document.getElementById('jwt-token-display').innerText = token;
+
+          document.getElementById('profile-area').classList.remove('hidden');
+        } else {
+          handleLogout();
+        }
+      } catch (err) {
+        handleLogout();
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('access_token');
+      document.getElementById('profile-area').classList.add('hidden');
+      const tabNavigation = document.querySelector('.flex.border-b');
+      if (tabNavigation) tabNavigation.classList.remove('hidden');
+      switchTab('login');
+      showAlert("Sessão encerrada com sucesso.", true);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('tab-login').addEventListener('click', () => switchTab('login'));
+      document.getElementById('tab-register').addEventListener('click', () => switchTab('register'));
+      document.getElementById('form-login').addEventListener('submit', handleLogin);
+      document.getElementById('form-register').addEventListener('submit', handleRegister);
+      document.getElementById('btn-logout').addEventListener('click', handleLogout);
+      loadUserProfile();
+    });
+  </script>
+</body>
+</html>

@@ -1,9 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app import models
 from app.database import engine
 from app.routers import auth, users
 
-# Cria as tabelas no banco de dados
+# Cria as tabelas na base de dados (caso não existam)
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -12,7 +13,16 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Inclui os routers de autenticação e de usuários
+# Configuração de CORS para permitir requisições da interface web
+app.add_middleware(  # type: ignore
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Inclui os routers de autenticação e de utilizadores
 app.include_router(auth.router)
 app.include_router(users.router)
 
