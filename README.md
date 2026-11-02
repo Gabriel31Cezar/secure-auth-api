@@ -1,100 +1,454 @@
-# 🔐 Secure Auth & User Management API
+# 🔐 Secure Auth & User Management API + Filesearch Engine
 
-Uma API RESTful robusta e segura para gestão de utilizadores e autenticação baseada em tokens JWT, desenvolvida com **FastAPI**, **SQLAlchemy** e **Pydantic**.
+Uma API RESTful robusta para autenticação segura, gestão de utilizadores e busca avançada de arquivos, desenvolvida com **FastAPI**, **SQLAlchemy** e **Pydantic**.
 
-O projeto conta com hashing seguro de palavras-passe via **Bcrypt**, arquitetura modular baseada em rotas e documentação interativa automática gerada pelo Swagger UI.
-
----
-
-## 🚀 Tecnologias Utilizadas
-
-- **[Python 3.12 / 3.14](https://www.python.org/)** — Linguagem principal
-- **[FastAPI](https://fastapi.tiangolo.com/)** — Framework web de alta performance
-- **[SQLAlchemy](https://www.sqlalchemy.org/)** — ORM para mapeamento e interação com a base de dados SQLite
-- **[Pydantic v2](https://docs.pydantic.dev/)** — Validação de dados e definições de schemas
-- **[PyJWT](https://pyjwt.readthedocs.io/)** — Geração e verificação de tokens de acesso JWT
-- **[Bcrypt](https://pypi.org/project/bcrypt/)** — Algoritmo de hashing seguro para armazenamento de palavras-passe
-- **[Uvicorn](https://www.uvicorn.org/)** — Servidor ASGI para execução da aplicação
+O projeto combina um sistema completo de autenticação baseada em JWT com um motor avançado de indexação e pesquisa de arquivos, incluindo suporte à extração de metadados EXIF e coordenadas GPS de imagens.
 
 ---
 
-## 📁 Estrutura do Projeto
+# 📖 Visão Geral
+
+Este projeto foi desenvolvido com foco em:
+
+- Segurança e autenticação moderna
+- Arquitetura limpa e modular
+- Validação rigorosa de dados
+- Busca avançada de arquivos
+- Extração de metadados EXIF
+- Extração de coordenadas GPS
+- Facilidade de manutenção
+- Escalabilidade
+- Testes automatizados
+
+---
+
+# ✨ Principais Funcionalidades
+
+## 🔑 Autenticação e Gestão de Utilizadores
+
+- Registro de utilizadores
+- Login seguro
+- Geração de tokens JWT
+- Rotas protegidas
+- Hashing de palavras-passe com Bcrypt
+- Validação com Pydantic v2
+- Controle de acesso autenticado
+
+## 🔍 Filesearch Engine
+
+- Varredura de diretórios
+- Indexação automática de arquivos
+- Extração de metadados EXIF
+- Extração de coordenadas GPS
+- Pesquisa dinâmica por múltiplos critérios
+- Consultas otimizadas com SQLAlchemy
+- Endpoints protegidos por JWT
+
+---
+
+# 🏗️ Arquitetura do Projeto
+
+O sistema segue uma arquitetura modular baseada em separação de responsabilidades.
+
+```text
+Cliente
+   │
+   ▼
+FastAPI Routers
+   │
+   ▼
+Services
+   │
+   ▼
+SQLAlchemy ORM
+   │
+   ▼
+SQLite Database
+```
+
+### Organização das Camadas
+
+```text
+Routers     → Endpoints da API
+Services    → Regras de negócio
+Schemas     → Validação de dados
+Models      → Estrutura de dados
+Security    → JWT e Bcrypt
+Filesearch  → Scanner, Indexador e Busca
+```
+
+---
+
+# 🚀 Tecnologias Utilizadas
+
+- Python 3.12+
+- FastAPI
+- SQLAlchemy 2.x
+- SQLite
+- Pydantic v2
+- PyJWT
+- Bcrypt
+- Pillow
+- Uvicorn
+- Pytest
+
+---
+
+# 📁 Estrutura do Projeto
 
 ```text
 secure-auth-api/
+│
 ├── app/
+│   │
+│   ├── filesearch/
+│   │   ├── cli.py
+│   │   ├── models.py
+│   │   │
+│   │   └── services/
+│   │       ├── fs_scanner.py
+│   │       ├── exif_extractor.py
+│   │       ├── indexer.py
+│   │       └── search_engine.py
+│   │
 │   ├── routers/
-│   │   ├── __init__.py
-│   │   ├── auth.py         # Endpoints de registo e login
-│   │   └── users.py        # Endpoints protegidos de utilizadores
-│   ├── __init__.py
-│   ├── config.py           # Configurações globais com Pydantic Settings
-│   ├── database.py         # Conexão e sessão do SQLAlchemy (SQLite)
-│   ├── main.py             # Ponto de entrada da aplicação FastAPI
-│   ├── models.py           # Modelos de dados do banco de dados (User)
-│   ├── schemas.py          # Schemas Pydantic para requisições e respostas
-│   └── security.py        # Lógica de hashing bcrypt e utilitários JWT
-├── .gitignore
-├── LICENSE
+│   │   ├── auth.py
+│   │   ├── users.py
+│   │   └── filesearch.py
+│   │
+│   ├── config.py
+│   ├── database.py
+│   ├── main.py
+│   ├── models.py
+│   ├── schemas.py
+│   └── security.py
+│
+├── tests/
+│
 ├── README.md
-└── requirements.txt
-
+├── requirements.txt
+├── LICENSE
+└── .gitignore
 ```
 
-## 🛠️ Como Executar o Projeto Localmente
+---
 
-### Pré-requisitos
-- Python instalado na sua máquina (versão 3.10 ou superior).
-- Git configurado.
+# ⚙️ Instalação
 
-### Passos para instalação:
+## Pré-requisitos
 
-1. **Clonar o repositório:**
-   git clone https://github.com/Gabriel31Cezar/secure-auth-api.git
-   cd secure-auth-api
-
-2. **Criar e ativar o ambiente virtual (`.venv`):**
-   - **Windows:**
-     python -m venv .venv
-     .\.venv\Scripts\activate
-   - **Linux/macOS:**
-     python3 -m venv .venv
-     source .venv/bin/activate
-
-3. **Instalar as dependências:**
-   pip install -r requirements.txt
-
-4. **Executar a aplicação com o Uvicorn:**
-   uvicorn app.main:app --reload
-
-5. **Acessar a documentação interativa (Swagger UI):**
-   Abra o seu navegador e aceda a: `http://127.0.0.1:8000/docs`
+- Python 3.12 ou superior
+- Git
 
 ---
 
-## 🛠️ Endpoints da API
+## Clonando o Projeto
 
-| Método | Rota | Autenticação | Descrição |
-| :--- | :--- | :---: | :--- |
-| GET | / | Não | Retorna mensagem de status e verificação inicial da API. |
-| GET | /health | Não | Endpoint para health check da aplicação. |
-| POST | /auth/register | Não | Regista um novo utilizador no sistema. |
-| POST | /auth/login | Não | Autentica o utilizador e gera o token de acesso JWT. |
-| GET | /users/me | **Sim (JWT)** | Retorna os dados do utilizador atualmente autenticado. |
+```bash
+git clone https://github.com/Gabriel31Cezar/secure-auth-api.git
+
+cd secure-auth-api
+```
 
 ---
 
-## 🔒 Testando as Rotas Protegidas no Swagger UI
+## Criando o Ambiente Virtual
 
-1. Aceda a `http://127.0.0.1:8000/docs`.
-2. Faça o registo de um utilizador na rota `POST /auth/register`.
-3. Autentique-se na rota `POST /auth/login` para receber o `access_token`.
-4. Clique no botão verde **Authorize** (com o ícone de cadeado) no canto superior direito da tela.
-5. Insira as credenciais no formulário do pop-up e clique em **Authorize**.
-6. Agora pode testar o endpoint protegido `GET /users/me`!
+### Windows
+
+```bash
+python -m venv .venv
+
+.venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+python3 -m venv .venv
+
+source .venv/bin/activate
+```
 
 ---
 
-## 📄 Licença
+## Instalando Dependências
 
-Este projeto está sob a licença MIT.
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# 🔧 Configuração
+
+Caso utilize variáveis de ambiente:
+
+```env
+SECRET_KEY=sua_chave_secreta
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+---
+
+# ▶️ Executando a API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Aplicação disponível em:
+
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+# 📚 Documentação da API
+
+### Swagger UI
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### ReDoc
+
+```text
+http://127.0.0.1:8000/redoc
+```
+
+---
+
+# 🔐 Fluxo de Autenticação JWT
+
+## 1. Registrar Utilizador
+
+```http
+POST /auth/register
+```
+
+## 2. Realizar Login
+
+```http
+POST /auth/login
+```
+
+Resposta:
+
+```json
+{
+  "access_token": "jwt-token",
+  "token_type": "bearer"
+}
+```
+
+## 3. Utilizar o Token
+
+```http
+Authorization: Bearer <token>
+```
+
+---
+
+# 🛠️ Endpoints da API
+
+## Sistema
+
+| Método | Endpoint |
+|----------|----------|
+| GET | `/` |
+| GET | `/health` |
+
+## Auth
+
+| Método | Endpoint |
+|----------|----------|
+| POST | `/auth/register` |
+| POST | `/auth/login` |
+
+## Users
+
+| Método | Endpoint |
+|----------|----------|
+| GET | `/users/me` |
+
+## Filesearch
+
+| Método | Endpoint |
+|----------|----------|
+| POST | `/filesearch/scan` |
+| POST | `/filesearch/search` |
+
+---
+
+# 🔎 Utilizando o Filesearch Engine
+
+## Scan de Diretórios
+
+Endpoint responsável por realizar varredura de diretórios e indexação dos arquivos encontrados.
+
+```http
+POST /filesearch/scan
+```
+
+---
+
+## Busca de Arquivos
+
+Endpoint responsável pela pesquisa de arquivos previamente indexados.
+
+```http
+POST /filesearch/search
+```
+
+---
+
+## Recursos Disponíveis
+
+- Busca por nome de arquivo
+- Busca por extensão
+- Busca por caminho
+- Busca por metadados EXIF
+- Busca por coordenadas GPS
+- Combinação de filtros avançados
+
+---
+
+# 📸 Extração EXIF
+
+O sistema suporta a leitura de metadados EXIF presentes em imagens compatíveis.
+
+Exemplos:
+
+- Data de captura
+- Fabricante da câmera
+- Modelo da câmera
+- Resolução
+- Informações técnicas da imagem
+
+---
+
+# 🌍 Geolocalização GPS
+
+Quando disponíveis nos metadados EXIF, as coordenadas GPS são extraídas e armazenadas para futuras consultas.
+
+Dados suportados:
+
+- Latitude
+- Longitude
+- Conversão para formato decimal
+
+---
+
+# 🧪 Testes Automatizados
+
+A suíte de testes cobre:
+
+- Registro de utilizadores
+- Login
+- Autenticação JWT
+- Rotas protegidas
+- Scanner de arquivos
+- Indexação
+- Search Engine
+- Endpoints Filesearch
+- Fluxos de integração
+
+---
+
+## Executar Todos os Testes
+
+```bash
+pytest
+```
+
+---
+
+## Executar com Detalhamento
+
+```bash
+pytest -v
+```
+
+---
+
+# 🔒 Recursos de Segurança
+
+- JWT Authentication
+- Password Hashing com Bcrypt
+- Rotas protegidas
+- Dependency Injection
+- Validação Pydantic
+- Tratamento consistente de erros
+- Arquitetura modular
+- Separação de responsabilidades
+
+---
+
+# 📈 Roadmap
+
+## v1.1
+
+- Paginação de resultados
+- Ordenação avançada
+- Melhorias na documentação
+
+## v1.2
+
+- Cache de consultas
+- Tarefas assíncronas
+- Melhorias de desempenho
+
+## Futuro
+
+- Elasticsearch
+- Dashboard Administrativo
+- Estatísticas de Indexação
+- Sistema de Monitoramento
+
+---
+
+# 🤝 Contribuição
+
+Crie uma branch para sua alteração:
+
+```bash
+git checkout -b minha-feature
+```
+
+Realize suas alterações e faça o commit:
+
+```bash
+git commit -m "feat: nova funcionalidade"
+```
+
+Envie para o repositório remoto:
+
+```bash
+git push origin minha-feature
+```
+
+Depois abra um Pull Request.
+
+---
+
+# 📄 Licença
+
+Este projeto está licenciado sob a licença MIT.
+
+Consulte o arquivo:
+
+```text
+LICENSE
+```
+
+---
+
+# 👨‍💻 Autor
+
+**Gabriel Cezar**
+
+Projeto desenvolvido para estudo, evolução técnica e construção de uma API segura de autenticação integrada a um motor avançado de pesquisa e indexação de arquivos.
