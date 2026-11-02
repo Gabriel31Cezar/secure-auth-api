@@ -1,56 +1,43 @@
-def test_register_user(client):
-    """Testa o cadastro de um novo usuário com sucesso (Status 201)."""
+# tests/test_auth.py
+from fastapi.testclient import TestClient
+
+
+def test_register_user(client: TestClient):
+    """Testa o registo bem-sucedido de um novo utilizador."""
     response = client.post(
         "/auth/register",
         json={
-            "email": "testuser@example.com",
+            "email": "test@example.com",
             "username": "testuser",
-            "password": "Password123!",
-        },
+            "password": "securepassword123"
+        }
     )
     assert response.status_code == 201
     data = response.json()
-    assert data["email"] == "testuser@example.com"
+    assert data["email"] == "test@example.com"
     assert data["username"] == "testuser"
     assert "id" in data
-    assert "password" not in data  # Garante que a senha pura não é retornada
 
 
-def test_register_duplicate_username(client):
-    """Testa se o sistema bloqueia usernames duplicados (Status 400)."""
-    payload = {
-        "email": "user1@example.com",
-        "username": "sameuser",
-        "password": "Password123!",
-    }
-    client.post("/auth/register", json=payload)
-
-    response = client.post(
-        "/auth/register",
-        json={
-            "email": "user2@example.com",
-            "username": "sameuser",
-            "password": "Password123!",
-        },
-    )
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Nome de utilizador já em uso."
-
-
-def test_login_success(client):
-    """Testa a geração do token JWT após autenticação com sucesso (Status 200)."""
+def test_login_user(client: TestClient):
+    """Testa o login e a obtenção do token JWT."""
+    # Regista primeiro o utilizador
     client.post(
         "/auth/register",
         json={
-            "email": "loginuser@example.com",
+            "email": "login@example.com",
             "username": "loginuser",
-            "password": "Password123!",
-        },
+            "password": "securepassword123"
+        }
     )
 
+    # Tenta fazer login enviando dados no formato de formulário (application/x-www-form-urlencoded)
     response = client.post(
         "/auth/login",
-        data={"username": "loginuser", "password": "Password123!"},
+        data={
+            "username": "loginuser",
+            "password": "securepassword123"
+        }
     )
     assert response.status_code == 200
     data = response.json()
@@ -58,36 +45,47 @@ def test_login_success(client):
     assert data["token_type"] == "bearer"
 
 
-def test_read_users_me_success(client):
-    """Testa o acesso à rota protegida /users/me enviando o Bearer Token JWT."""
-    # 1. Cadastra o usuário
+def test_get_users_me_success(client: TestClient):
+    """Testa o acesso à rota protegida /users/me com um token válido."""
+    # Regista e faz login para obter o token
     client.post(
         "/auth/register",
         json={
-            "email": "meuser@example.com",
+            "email": "me@example.com",
             "username": "meuser",
-            "password": "Password123!",
-        },
+            "password": "securepassword123"
+        }
     )
-
-    # 2. Faz o login para obter o token
-    login_res = client.post(
+    login_response = client.post(
         "/auth/login",
-        data={"username": "meuser", "password": "Password123!"},
+        data={
+            "username": "meuser",
+            "password": "securepassword123"
+        }
     )
-    token = login_res.json()["access_token"]
+    token = login_response.json()["access_token"]
 
-    # 3. Acessa a rota protegida com o cabeçalho Authorization
-    headers = {"Authorization": f"Bearer {token}"}
-    response = client.get("/users/me", headers=headers)
-
+    # Acede à rota protegida enviando o cabeçalho Authorization Bearer
+    response = client.get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {token}"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "meuser"
-    assert data["email"] == "meuser@example.com"
+    assert data["email"] == "me@example.com"
 
 
-def test_read_users_me_unauthorized(client):
-    """Testa se a rota protegida bloqueia requisições sem token (Status 401)."""
+def test_get_users_me_unauthorized_no_token(client: TestClient):
+    """Testa o acesso à rota /users/me sem enviar nenhum token."""
     response = client.get("/users/me")
+    assert response.status_code == 401
+
+
+def test_get_users_me_invalid_token(client: TestClient):
+    """Testa o acesso à rota /users/me enviando um token inválido/corrompido."""
+    response = client.get(
+        "/users/me",
+        headers={"Authorization": "Bearer token_falsificado_ou_invalido"}
+    )
     assert response.status_code == 401

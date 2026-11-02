@@ -1,8 +1,8 @@
 // Troca de abas, validação, cadastro, autenticação, perfil e status da API
 (function () {
-  // ===== Configuração da API =====
-  const API_BASE_URL = "http://127.0.0.1:8000";
-  const TOKEN_KEY = "access_token";
+// ===== Configuração da API =====
+const API_BASE_URL = "http://127.0.0.1:8000";
+const TOKEN_KEY = "access_token";
 
   // ===== Elementos da página =====
   const tabLogin = document.getElementById("tab-login");

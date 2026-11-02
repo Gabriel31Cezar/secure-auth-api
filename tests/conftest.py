@@ -1,3 +1,4 @@
+# tests/conftest.py
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -7,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
 from app.main import app
 
-# Cria um banco SQLite em memória isolado para os testes
+# Configuração de banco de dados em memória para testes
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
@@ -18,25 +19,34 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture(scope="function")
-def session():
-    """Cria e limpa as tabelas a cada função de teste."""
+@pytest.fixture(autouse=True)
+def setup_database():
+    """Cria e limpa as tabelas antes de cada teste."""
     Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
+def db():
+    """Fornece uma sessão de banco de dados para os testes."""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
     try:
-        yield db
+        yield session
     finally:
-        db.close()
-        Base.metadata.drop_all(bind=engine)
+        session.close()
+        transaction.rollback()
+        connection.close()
 
 
-@pytest.fixture(scope="function")
-def client(session):
-    """Sobrescreve a dependência de banco de dados da API para usar o banco em memória."""
-
+@pytest.fixture
+def client(db):
+    """Fornece um TestClient do FastAPI com dependência de banco sobrescrita."""
     def override_get_db():
         try:
-            yield session
+            yield db
         finally:
             pass
 

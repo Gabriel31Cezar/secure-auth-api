@@ -1,37 +1,44 @@
+# app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app import models
-from app.database import engine
+from app.database import engine, Base
 from app.routers import auth, users
 
-# Cria as tabelas na base de dados (caso não existam)
-models.Base.metadata.create_all(bind=engine)
+# Cria as tabelas no banco de dados (caso não existam)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Secure Auth & User Management API",
-    description="API para gestão de utilizadores e autenticação segura.",
-    version="0.1.0",
+    version="1.0.0"
 )
 
-# Configuração de CORS para permitir requisições da interface web
-app.add_middleware(  # type: ignore
+# Definição das origens permitidas (CORS)
+origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:63342",
+    "http://localhost:63342",
+    "null"
+]
+
+# Ignora a inspeção de tipos estritos do PyCharm no middleware do FastAPI
+# noinspection PyTypeChecker
+app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Inclui os routers de autenticação e de utilizadores
+# Inclui os roteadores da aplicação
 app.include_router(auth.router)
 app.include_router(users.router)
 
 
-@app.get("/")
-def read_root():
-    return {"message": "API de Autenticação Ativa e Operacional!"}
-
-
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    """Rota de verificação de saúde da API."""
+    return {"status": "ok"}
