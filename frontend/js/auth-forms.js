@@ -1,9 +1,8 @@
-// Troca de abas, validação, cadastro, autenticação e status da API
+// Troca de abas, validação, cadastro, autenticação, perfil e status da API
 (function () {
   // ===== Configuração da API =====
   const API_BASE_URL = "http://127.0.0.1:8000";
   const TOKEN_KEY = "access_token";
-  const USER_KEY = "username";
 
   // ===== Elementos da página =====
   const tabLogin = document.getElementById("tab-login");
@@ -14,6 +13,7 @@
   const authCard = document.getElementById("auth-card");
   const userPanel = document.getElementById("user-panel");
   const userUsername = document.getElementById("user-username");
+  const userEmail = document.getElementById("user-email");
   const userToken = document.getElementById("user-token");
   const logoutBtn = document.getElementById("logout-btn");
   const loginButton = formLogin.querySelector('button[type="submit"]');
@@ -30,7 +30,6 @@
       {
         id: "login-username",
         check: (value) => value.trim().length > 0,
-        // noinspection SpellCheckingInspection
         message: "Informe seu usuário ou e-mail."
       },
       {
@@ -117,6 +116,31 @@
     return readResponse(response, "Não foi possível criar a conta.");
   }
 
+  // Busca os dados do usuário autenticado; a chave JWT vai no cabeçalho Authorization
+  async function loadProfile(token) {
+    try {
+      const response = await fetch(API_BASE_URL + "/users/me", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
+      if (response.status === 401) {
+        // Chave expirada ou inválida: encerra a sessão e volta para o login
+        logout();
+        showAlert("Sua sessão expirou. Entre novamente.", "error");
+        return;
+      }
+
+      const user = await response.json().catch(() => null);
+      if (!response.ok || !user) {
+        showAlert("Não foi possível carregar seus dados.", "error");
+        return;
+      }
+      showPanel(user, token);
+    } catch (error) {
+      showConnectionOrApiError(error);
+    }
+  }
+
   async function handleLogin() {
     const username = document.getElementById("login-username").value.trim();
     const senha = document.getElementById("login-password").value;
@@ -125,9 +149,8 @@
     try {
       const data = await requestLogin(username, senha);
       sessionStorage.setItem(TOKEN_KEY, data.access_token);
-      sessionStorage.setItem(USER_KEY, username);
       formLogin.reset();
-      showPanel(username, data.access_token);
+      await loadProfile(data.access_token);
     } catch (error) {
       showConnectionOrApiError(error);
     } finally {
@@ -171,11 +194,12 @@
 
   // ===== Painel do usuário =====
 
-  function showPanel(username, token) {
+  function showPanel(user, token) {
     clearAlert();
     authCard.classList.add("hidden");
     userPanel.classList.remove("hidden");
-    userUsername.textContent = username;
+    userUsername.textContent = user.username;
+    userEmail.textContent = user.email;
     userToken.textContent = token;
   }
 
@@ -183,12 +207,12 @@
     userPanel.classList.add("hidden");
     authCard.classList.remove("hidden");
     userUsername.textContent = "-";
+    userEmail.textContent = "-";
     userToken.textContent = "-";
   }
 
   function logout() {
     sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(USER_KEY);
     showAuthCard();
   }
 
@@ -267,13 +291,13 @@
 
   logoutBtn.addEventListener("click", logout);
 
-  // Se já existe um token nesta aba (por exemplo, ao atualizar a página), mostra o painel direto
+  // Se já existe uma chave salva nesta aba, busca o perfil direto
   const savedToken = sessionStorage.getItem(TOKEN_KEY);
   if (savedToken) {
-    showPanel(sessionStorage.getItem(USER_KEY) || "-", savedToken);
+    authCard.classList.add("hidden");
+    loadProfile(savedToken).catch(() => showAlert("Não foi possível carregar seus dados.", "error"));
   }
 
   // Verifica a API ao abrir a página
   checkApiHealth().catch(() => setApiStatus(false));
-})();git add frontend
-git commit -m "feat: indicador de status da API (health check)"
+})();
