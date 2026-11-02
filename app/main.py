@@ -4,6 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routers import auth, users
 
+# >>> ADICIONAR ESTA LINHA (import só pelo efeito colateral de registrar
+#     IndexedFile no Base.metadata; o nome é intencionalmente "não usado")
+from app.filesearch import models as _filesearch_models  # noqa: F401
+
 # Cria as tabelas no banco de dados (caso não existam)
 Base.metadata.create_all(bind=engine)
 
@@ -11,6 +15,7 @@ app = FastAPI(
     title="Secure Auth & User Management API",
     version="1.0.0"
 )
+
 
 # Definição das origens permitidas (CORS)
 origins = [
