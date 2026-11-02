@@ -1,4 +1,4 @@
-// Troca de abas, validação e autenticação na API
+// Troca de abas, validação, cadastro e autenticação na API
 (function () {
   // ===== Configuração da API =====
   const API_BASE_URL = "http://127.0.0.1:8000";
@@ -17,6 +17,7 @@
   const userToken = document.getElementById("user-token");
   const logoutBtn = document.getElementById("logout-btn");
   const loginButton = formLogin.querySelector('button[type="submit"]');
+  const registerButton = formRegister.querySelector('button[type="submit"]');
 
   const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,30}$/;
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,7 +57,19 @@
 
   // ===== Comunicação com a API =====
 
-  // O FastAPI espera dados de formulário (campos username e senha), não JSON
+  // Lê a resposta JSON e lança erro com a mensagem da API quando não for sucesso
+  async function readResponse(response, fallbackMessage) {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = typeof data.detail === "string" ? data.detail : fallbackMessage;
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+
+  // O FastAPI espera dados de formulário (campos username e password), não JSON
   async function requestLogin(username, senha) {
     const body = new URLSearchParams();
     body.append("username", username);
@@ -68,23 +81,25 @@
       body: body
     });
 
-    const data = await response.json().catch(() => ({}));
+    return readResponse(response, "Não foi possível fazer a entrada.");
+  }
 
-    if (!response.ok) {
-      const message = typeof data.detail === "string" ? data.detail : "Não foi possível fazer a entrada.";
-      const error = new Error(message);
-      error.status = response.status;
-      throw error;
-    }
+  // O cadastro usa JSON, conforme o schema UserCreate da API
+  async function requestRegister(username, email, senha) {
+    const response = await fetch(API_BASE_URL + "/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, username: username, password: senha })
+    });
 
-    return data; // { access_token, token_type }
+    return readResponse(response, "Não foi possível criar a conta.");
   }
 
   async function handleLogin() {
     const username = document.getElementById("login-username").value.trim();
     const senha = document.getElementById("login-password").value;
 
-    setLoginLoading(true);
+    setButtonLoading(loginButton, true, "Entrando...", "Entrar");
     try {
       const data = await requestLogin(username, senha);
       sessionStorage.setItem(TOKEN_KEY, data.access_token);
@@ -92,20 +107,44 @@
       formLogin.reset();
       showPanel(username, data.access_token);
     } catch (error) {
-      if (error instanceof TypeError) {
-        // Erro de rede: o navegador não conseguiu falar com a API
-        showAlert("Não foi possível conectar à API em " + API_BASE_URL + ". Confira se o backend está rodando.", "error");
-      } else {
-        showAlert(error.message, "error");
-      }
+      showConnectionOrApiError(error);
     } finally {
-      setLoginLoading(false);
+      setButtonLoading(loginButton, false, "Entrando...", "Entrar");
     }
   }
 
-  function setLoginLoading(isLoading) {
-    loginButton.disabled = isLoading;
-    loginButton.textContent = isLoading ? "Entrando..." : "Entrar";
+  async function handleRegister() {
+    const username = document.getElementById("reg-username").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const senha = document.getElementById("reg-password").value;
+
+    setButtonLoading(registerButton, true, "Criando conta...", "Criar conta");
+    try {
+      await requestRegister(username, email, senha);
+      formRegister.reset();
+      showTab(true);
+      document.getElementById("login-username").value = username;
+      document.getElementById("login-password").focus();
+      showAlert("Conta criada com sucesso. Agora entre com sua senha.", "success");
+    } catch (error) {
+      showConnectionOrApiError(error);
+    } finally {
+      setButtonLoading(registerButton, false, "Criando conta...", "Criar conta");
+    }
+  }
+
+  function showConnectionOrApiError(error) {
+    if (error instanceof TypeError) {
+      // Erro de rede: o navegador não conseguiu falar com a API
+      showAlert("Não foi possível conectar à API em " + API_BASE_URL + ". Confira se o backend está rodando.", "error");
+    } else {
+      showAlert(error.message, "error");
+    }
+  }
+
+  function setButtonLoading(button, isLoading, loadingText, normalText) {
+    button.disabled = isLoading;
+    button.textContent = isLoading ? loadingText : normalText;
   }
 
   // ===== Painel do usuário =====
@@ -193,7 +232,7 @@
       if (form === formLogin) {
         await handleLogin();
       } else {
-        showAlert("Dados válidos. O cadastro na API será ligado na próxima etapa.", "success");
+        await handleRegister();
       }
     });
 
