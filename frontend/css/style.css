@@ -194,6 +194,17 @@ body {
   outline-offset: 1px;
 }
 
+/* Erros de validação */
+.field-error {
+  min-height: 1em;
+  font-size: 0.8rem;
+  color: var(--danger);
+}
+
+.field input.invalid {
+  border-color: var(--danger);
+}
+
 /* Botões */
 .btn {
   padding: 10px 16px;
