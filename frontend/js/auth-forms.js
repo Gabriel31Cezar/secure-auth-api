@@ -1,4 +1,4 @@
-// Troca de abas, validação, cadastro e autenticação na API
+// Troca de abas, validação, cadastro, autenticação e status da API
 (function () {
   // ===== Configuração da API =====
   const API_BASE_URL = "http://127.0.0.1:8000";
@@ -18,6 +18,8 @@
   const logoutBtn = document.getElementById("logout-btn");
   const loginButton = formLogin.querySelector('button[type="submit"]');
   const registerButton = formRegister.querySelector('button[type="submit"]');
+  const apiStatus = document.getElementById("api-status");
+  const apiStatusText = apiStatus.querySelector(".status-text");
 
   const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,30}$/;
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,6 +30,7 @@
       {
         id: "login-username",
         check: (value) => value.trim().length > 0,
+        // noinspection SpellCheckingInspection
         message: "Informe seu usuário ou e-mail."
       },
       {
@@ -55,6 +58,24 @@
     ]
   };
 
+  // ===== Status da API (health check) =====
+
+  async function checkApiHealth() {
+    try {
+      const response = await fetch(API_BASE_URL + "/health");
+      setApiStatus(response.ok);
+    } catch (error) {
+      // Sem resposta da API (backend desligado ou erro de rede)
+      setApiStatus(false);
+    }
+  }
+
+  function setApiStatus(isOnline) {
+    apiStatus.classList.toggle("online", isOnline);
+    apiStatus.classList.toggle("offline", !isOnline);
+    apiStatusText.textContent = isOnline ? "API online" : "API offline";
+  }
+
   // ===== Comunicação com a API =====
 
   // Lê a resposta JSON e lança erro com a mensagem da API quando não for sucesso
@@ -69,10 +90,11 @@
     return data;
   }
 
-  // O FastAPI espera dados de formulário (campos username e password), não JSON
+  // O FastAPI espera dados de formulário com os campos "username" e "password", não JSON
   async function requestLogin(username, senha) {
     const body = new URLSearchParams();
     body.append("username", username);
+    // noinspection SpellCheckingInspection
     body.append("password", senha);
 
     const response = await fetch(API_BASE_URL + "/auth/login", {
@@ -245,9 +267,13 @@
 
   logoutBtn.addEventListener("click", logout);
 
-  // Se já existe um token nesta aba (por exemplo, após F5), mostra o painel direto
+  // Se já existe um token nesta aba (por exemplo, ao atualizar a página), mostra o painel direto
   const savedToken = sessionStorage.getItem(TOKEN_KEY);
   if (savedToken) {
     showPanel(sessionStorage.getItem(USER_KEY) || "-", savedToken);
   }
-})();
+
+  // Verifica a API ao abrir a página
+  checkApiHealth().catch(() => setApiStatus(false));
+})();git add frontend
+git commit -m "feat: indicador de status da API (health check)"
